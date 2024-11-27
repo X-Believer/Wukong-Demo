@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.11.35222.181
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Wukong-Demo", "Wukong-Demo.csproj", "{054A2F9F-5F3C-4731-9409-7BDAD326CB95}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{054A2F9F-5F3C-4731-9409-7BDAD326CB95}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{054A2F9F-5F3C-4731-9409-7BDAD326CB95}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{054A2F9F-5F3C-4731-9409-7BDAD326CB95}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{054A2F9F-5F3C-4731-9409-7BDAD326CB95}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {588CD5BD-25A7-4D98-85D7-5CAFC81AC329}
+	EndGlobalSection
+EndGlobal
