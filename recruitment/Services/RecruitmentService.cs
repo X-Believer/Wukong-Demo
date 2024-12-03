@@ -1,7 +1,7 @@
-﻿using WukongDemo.Models;
-using WukongDemo.Repositories;
+﻿using WukongDemo.recruitment.Models;
+using WukongDemo.recruitment.Repositories;
 
-namespace WukongDemo.Services
+namespace WukongDemo.recruitment.Services
 {
     public interface IRecruitmentService
     {

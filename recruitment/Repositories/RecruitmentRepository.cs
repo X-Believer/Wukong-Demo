@@ -1,9 +1,9 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System;
-using WukongDemo.Models;
+using WukongDemo.recruitment.Models;
 using WukongDemo.Data;
 
-namespace WukongDemo.Repositories
+namespace WukongDemo.recruitment.Repositories
 {
     public interface IRecruitmentRepository
     {

@@ -1,4 +1,4 @@
-﻿namespace WukongDemo.Models
+﻿namespace WukongDemo.recruitment.Models
 {
     public class Recruitment
     {

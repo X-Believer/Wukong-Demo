@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.11.35222.181
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Wukong-Demo", "Wukong-Demo.csproj", "{054A2F9F-5F3C-4731-9409-7BDAD326CB95}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WukongDemo", "WukongDemo.csproj", "{054A2F9F-5F3C-4731-9409-7BDAD326CB95}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
