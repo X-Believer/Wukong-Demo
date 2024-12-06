@@ -10,7 +10,6 @@ namespace WukongDemo.user.Models
     public class User
     {
         public required int UserId { get; set; }
-
         public required string Name { get; set; }
         public required string Email { get; set; }
         public required string Role { get; set; }
