@@ -1,22 +1,23 @@
-﻿// Program.cs
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using WukongDemo.Data;
-using WukongDemo.inAppMessage.Services;
+using WukongDemo.inAppMessage.Service;
+using WukongDemo.joinRequest.Service;
+using WukongDemo.project.Service;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 获取数据库连接字符串
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
-// 注册数据库上下文，使用 SQLite
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite(connectionString));
 
-// 注册其他服务
 builder.Services.AddScoped<InAppMessageService>();
-
+builder.Services.AddScoped<JoinRequestService>();
+builder.Services.AddScoped<ProjectService>();
+builder.Services.AddScoped<ProjectMemberService>();
 
 builder.Services.AddControllers();
+
 
 var app = builder.Build();
 

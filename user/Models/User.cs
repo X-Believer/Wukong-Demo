@@ -1,6 +1,6 @@
 ﻿using WukongDemo.inAppMessage.Models;
-using WukongDemo.recruitment.Models;
 using WukongDemo.project.Models;
+using WukongDemo.joinRequest.Models;
 
 namespace WukongDemo.user.Models
 {
@@ -9,7 +9,7 @@ namespace WukongDemo.user.Models
     /// </summary>
     public class User
     {
-        public required int Id { get; set; }
+        public required int UserId { get; set; }
 
         public required string Name { get; set; }
         public required string Email { get; set; }
@@ -19,5 +19,7 @@ namespace WukongDemo.user.Models
         public ICollection<InAppMessage> SentMessages { get; set; }
         public ICollection<InAppMessage> ReceivedMessages { get; set; }
         public ICollection<ProjectMember> ProjectMembers { get; set; }
+        public ICollection<JoinRequest> JoinRequestsAsApplicant {  get; set; }
+        public ICollection<JoinRequest> JoinRequestsAsReviewer { get; set; }
     }
 }

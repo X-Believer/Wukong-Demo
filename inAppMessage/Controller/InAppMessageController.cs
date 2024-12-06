@@ -2,10 +2,11 @@
 using Microsoft.EntityFrameworkCore;
 using WukongDemo.Data;
 using WukongDemo.inAppMessage.Models;
+using WukongDemo.Util;
 using System.Linq;
 using System.IdentityModel.Tokens.Jwt;
 using Microsoft.AspNetCore.Authorization;
-using WukongDemo.inAppMessage.Services;
+using WukongDemo.inAppMessage.Service;
 
 namespace WukongDemo.inAppMessage.Controllers
 {
@@ -28,7 +29,7 @@ namespace WukongDemo.inAppMessage.Controllers
         [HttpGet("messages")]
         public async Task<IActionResult> GetMessages([FromHeader] string authorization, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
         {
-            var userId = GetUserIdFromToken(authorization);
+            var userId = AuthUtils.GetUserIdFromToken(authorization);
 
             // 从 Service 层获取站内信列表
             var messages = await _inAppMessageService.GetMessagesByRecipientAsync(userId, pageNumber, pageSize);
@@ -47,7 +48,7 @@ namespace WukongDemo.inAppMessage.Controllers
         [HttpGet("messages/{id}")]
         public async Task<IActionResult> GetMessageById([FromHeader] string authorization, [FromRoute] int id)
         {
-            var userId = GetUserIdFromToken(authorization);
+            var userId = AuthUtils.GetUserIdFromToken(authorization);
 
             // 从数据库中查询站内信
             var message = await _inAppMessageService.GetMessageByIdAsync(id);
@@ -71,17 +72,20 @@ namespace WukongDemo.inAppMessage.Controllers
         [HttpPost("message")]
         public async Task<IActionResult> SendMessage([FromHeader] string authorization, [FromBody] SendMessageRequest request)
         {
-            var senderId = GetUserIdFromToken(authorization);
+            var senderId = AuthUtils.GetUserIdFromToken(authorization);
 
             var result = await _inAppMessageService.SendMessageAsync(senderId, request.RecipientId, request.Type, request.Subject, request.Content, request.RelatedProjectId);
 
             return Ok(new { success = true, message = result });
         }
 
+        /// <summary>
+        /// 向项目所有成员发送站内信
+        /// </summary>
         [HttpPost("projects/{projectId}/messages")]
         public async Task<IActionResult> SendMessageToAllMembers([FromRoute] int projectId, [FromHeader] string authorization, [FromBody] SendMessageRequest request)
         {
-            var senderId = GetUserIdFromToken(authorization);
+            var senderId = AuthUtils.GetUserIdFromToken(authorization);
 
             
             var result = await _inAppMessageService.SendMessageToAllMembers(projectId, senderId, request.Type, request.Subject, request.Content);
@@ -100,7 +104,7 @@ namespace WukongDemo.inAppMessage.Controllers
         [HttpDelete("message/{id}")]
         public async Task<IActionResult> DeleteMessageById([FromHeader] string authorization, [FromRoute] int id)
         {
-            var userId = GetUserIdFromToken(authorization);
+            var userId = AuthUtils.GetUserIdFromToken(authorization);
 
             var result = await _inAppMessageService.DeleteMessageAsync(id, userId);
 
@@ -116,21 +120,6 @@ namespace WukongDemo.inAppMessage.Controllers
             return Ok(new { success = true, message = "站内信删除成功" });
         }
 
-        private static int GetUserIdFromToken(string authorization)
-        {
-            // 解析JWT Token中的用户ID
-            var token = authorization.ToString().Replace("Bearer ", "");
-            var handler = new JwtSecurityTokenHandler();
-            var jsonToken = handler.ReadToken(token) as JwtSecurityToken;
-            var userId = jsonToken?.Claims.FirstOrDefault(c => c.Type == "userId")?.Value;
-
-            if (userId == null)
-                throw new UnauthorizedAccessException("Invalid token");
-            int.TryParse(userId, out int res);
-
-            return res;
-        }
-
-
+     
     }
 }

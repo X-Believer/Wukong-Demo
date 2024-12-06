@@ -1,5 +1,6 @@
 ﻿using WukongDemo.user.Models;
 using WukongDemo.project.Models;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace WukongDemo.inAppMessage.Models
 {
@@ -8,7 +9,7 @@ namespace WukongDemo.inAppMessage.Models
     /// </summary>
     public class InAppMessage
     {
-        public int Id { get; set; }
+        public int InAppMessageId { get; set; }
         public required int SenderId { get; set; }
         public required int RecipientId { get; set; }
         public required int Type { get; set; }
@@ -18,9 +19,19 @@ namespace WukongDemo.inAppMessage.Models
         public required bool IsRead { get; set; }
         public int? RelatedProjectId { get; set; }
 
+        public InAppMessage()
+        {
+            
+        }
+
         // 导航属性
+        [ForeignKey("SenderId")]
         public User Sender { get; set; }
+
+        [ForeignKey("RecipientId")]
         public User Recipient { get; set; }
+
+        [ForeignKey("RelatedProjectId")]
         public Project RelatedProject { get; set; }
     }
 }

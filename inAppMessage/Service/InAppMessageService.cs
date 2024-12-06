@@ -4,7 +4,7 @@ using WukongDemo.Data;
 using WukongDemo.user.Models;
 using Microsoft.AspNetCore.Identity;
 
-namespace WukongDemo.inAppMessage.Services
+namespace WukongDemo.inAppMessage.Service
 {
     public class InAppMessageService
     {
@@ -18,6 +18,7 @@ namespace WukongDemo.inAppMessage.Services
         // 获取用户站内信
         public async Task<IEnumerable<InAppMessage>> GetMessagesByRecipientAsync(int userId, int pageNumber, int pageSize)
         {
+
             var query = _context.InAppMessages
                 .Where(m => m.RecipientId == userId)
                 .OrderByDescending(m => m.SentAt)
@@ -30,7 +31,7 @@ namespace WukongDemo.inAppMessage.Services
         // 根据id查询站内信
         public async Task<InAppMessage> GetMessageByIdAsync(int id)
         {
-            return await _context.InAppMessages.AsNoTracking().FirstOrDefaultAsync(m => m.Id == id);
+            return await _context.InAppMessages.AsNoTracking().FirstOrDefaultAsync(m => m.InAppMessageId == id);
         }
 
         // 发送站内信
