@@ -1,6 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
 using WukongDemo.Data;
 using WukongDemo.project.Models;
+using WukongDemo.Util;
 
 namespace WukongDemo.project.Service
 {
@@ -27,17 +29,17 @@ namespace WukongDemo.project.Service
         }
 
         // 新增项目成员
-        public async Task<string> AddProjectMemberAsync(int projectId, int userId, int newMemberId, string role)
+        public async Task<ProjectMember> AddProjectMemberAsync(int projectId, int userId, int newMemberId, [ValidRole] string role)
         {
-            var isAuthorized = await IsUserProjectLeaderOrAdminAsync(projectId, userId);
+            var isAuthorized =  await IsUserProjectLeaderOrAdminAsync(projectId, userId);
             if (!isAuthorized)
             {
-                return "Forbidden";
+                throw new UnauthorizedAccessException("Access denied.");
             }
 
             if (await IsUserInProjectAsync(projectId, newMemberId))
             {
-                return "AlreadyMember";
+                throw new InvalidOperationException("Already a Member.");
             }
 
             var newMember = new ProjectMember
@@ -52,16 +54,17 @@ namespace WukongDemo.project.Service
             _context.ProjectMembers.Add(newMember);
             await _context.SaveChangesAsync();
 
-            return "MemberAdded";
+            return newMember;
         }
 
         // 变更项目成员身份
-        public async Task<string> ChangeMemberRoleAsync(int projectId, int userId, string newRole, int updateId)
+        public async Task<string> ChangeMemberRoleAsync(int projectId, int userId, [ValidRole] string newRole, int updateId)
         {
             var isAuthorized = await IsUserProjectLeaderOrAdminAsync(projectId, userId);
+            
             if (!isAuthorized)
             {
-                return "Forbidden";
+                throw new UnauthorizedAccessException("Access denied.");
             }
 
             var projectMember = await _context.ProjectMembers
@@ -69,7 +72,7 @@ namespace WukongDemo.project.Service
 
             if (projectMember == null)
             {
-                return "NotFound";
+                throw new KeyNotFoundException("Member not found in the project.");
             }
 
             if (newRole == "ProjectLeader")
@@ -80,11 +83,12 @@ namespace WukongDemo.project.Service
                 if (currentLeader != null) currentLeader.Role = "Member";
                 projectMember.Role = "ProjectLeader";
             }
+
             else projectMember.Role = newRole;
 
             await _context.SaveChangesAsync();
 
-            return "Success";
+            return $"Member role updated to {projectMember.Role} successfully.";
         }
 
         // 删除项目成员
@@ -93,7 +97,7 @@ namespace WukongDemo.project.Service
             var isAuthorized = await IsUserProjectLeaderOrAdminAsync(projectId, userId);
             if (!isAuthorized||userId==deleteId)// 不能删除自己（负责人）
             {
-                return "Forbidden";
+                throw new UnauthorizedAccessException("You do not have permission to remove this member.");
             }
 
             var projectMember = await _context.ProjectMembers
@@ -101,18 +105,18 @@ namespace WukongDemo.project.Service
 
             if (projectMember == null)
             {
-                return "NotFound";
+                throw new KeyNotFoundException("Member not found in the project.");
             }
 
             _context.ProjectMembers.Remove(projectMember);
             await _context.SaveChangesAsync();
 
-            return "Success";
+            return "Member removed successfully.";
         }
 
 
         // 检查用户是否属于某个项目
-        public async Task<bool> IsUserInProjectAsync(int projectId, int userId)
+        private async Task<bool> IsUserInProjectAsync(int projectId, int userId)
         {
             var isMember = await _context.ProjectMembers
                 .AnyAsync(pm => pm.ProjectId == projectId && pm.UserId == userId && pm.Status == "Active");
@@ -126,12 +130,11 @@ namespace WukongDemo.project.Service
             var project = await _context.Projects
                 .Include(p => p.Leader)
                 .FirstOrDefaultAsync(p => p.ProjectId == projectId);
-
             if (project == null)
             {
                 return false;
             }
-
+            
             return project.LeaderId == userId;
         }
     }

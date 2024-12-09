@@ -7,7 +7,7 @@ using WukongDemo.Util;
 
 namespace WukongDemo.joinRequest.Controller
 {
-    [Route("api/[controller]")]
+    [Route("")]
     [ApiController]
     public class JoinRequestController : ControllerBase
     {
@@ -24,12 +24,11 @@ namespace WukongDemo.joinRequest.Controller
         [HttpGet("projects/{projectId}/join-requests")]
         public async Task<IActionResult> GetJoinRequestsByProjectId(int projectId, int pageNumber = 1, int pageSize = 10)
         {
-            // 调用 Service 层获取项目的所有加入申请
             var (joinRequests, totalCount) = await _joinRequestService.GetJoinRequestsByProjectIdAsync(projectId, pageNumber, pageSize);
 
             if (joinRequests == null || !joinRequests.Any())
             {
-                return NotFound(new { message = "No join requests found for this project." });
+                return NotFound(new { errorCode = 404, success = false, message = "Join request not found in the project." });
             }
 
             // 计算总页数
@@ -57,7 +56,7 @@ namespace WukongDemo.joinRequest.Controller
 
             if (joinRequest == null)
             {
-                return NotFound(new { errorCode = "404", message = "Join request not found." });
+                return NotFound(new { errorCode = 404, success = false, message = "Join request not found." });
             }
 
             return Ok(joinRequest);
@@ -71,29 +70,41 @@ namespace WukongDemo.joinRequest.Controller
         {
             if (dto == null)
             {
-                return BadRequest(new { errorCode = "400", message = "Invalid request data." });
+                return BadRequest(new { success = false, message = "Invalid request data." });
             }
-
             var applicantId = AuthUtils.GetUserIdFromToken(authorization);
 
-            var joinRequest = await _joinRequestService.SendJoinRequestAsync(dto.ProjectId, applicantId, dto.Type, dto.Reason, dto.SelfIntroduction);
-
-            return CreatedAtAction(nameof(GetJoinRequestById), new { id = joinRequest.JoinRequestId }, joinRequest);
+            try
+            {
+                var joinRequest = await _joinRequestService.SendJoinRequestAsync(dto.ProjectId, applicantId, dto.Type, dto.Reason, dto.SelfIntroduction);
+                return Ok(new
+                {
+                    success = true,
+                    message = "添加成员成功",
+                    data = joinRequest
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { errorCode = 404, success = false, message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
         }
 
         /// <summary>
         /// 修改加入申请
         /// </summary>
-        [HttpPut("join-requests/{id}")]
+        [HttpPost("join-requests/{id}")]
         public async Task<IActionResult> UpdateJoinRequest([FromHeader] string authorization, [FromRoute] int id, [FromBody] JoinRequestDto updateDto)
         {
             var userId = AuthUtils.GetUserIdFromToken(authorization);
             try
             {
-                // 调用 Service 层方法修改加入申请
                 var updatedRequest = await _joinRequestService.UpdateJoinRequestAsync(id, userId, updateDto.Type, updateDto.Reason, updateDto.SelfIntroduction);
 
-                // 返回修改后的申请信息
                 return Ok(new
                 {
                     success = true,
@@ -103,59 +114,42 @@ namespace WukongDemo.joinRequest.Controller
             }
             catch (UnauthorizedAccessException ex)
             {
-                return Forbid(ex.Message);
+                return Unauthorized(new { errorCode = 401, success = false, message = ex.Message });
             }
             catch (KeyNotFoundException ex)
             {
-                return NotFound(new { success = false, message = ex.Message });
+                return NotFound(new { errorCode = 404, success = false, message = ex.Message });
             }
             catch (Exception ex)
             {
-                return BadRequest(new { success = false, message = ex.Message });
+                return StatusCode(500, new { success = false, message = ex.Message });
             }
         }
 
         /// <summary>
         /// 审核加入申请
         /// </summary>
-        [HttpPut("review-join-requests/{id}")]
+        [HttpPut("review-join-requests/{requestId}")]
         public async Task<IActionResult> ApproveJoinRequestAsync([FromRoute] int requestId, [FromHeader] string authorization, [FromQuery] bool isApproved)
         {
+            var userId = AuthUtils.GetUserIdFromToken(authorization);
+
             try
             {
-                var userId = AuthUtils.GetUserIdFromToken(authorization);
-
                 var result = await _joinRequestService.ApproveJoinRequestAsync(requestId, userId, isApproved);
-
-                if (result == "Success")
-                {
-                    return Ok(new { success = true, message = "申请已成功审核" });
-                }
-                else if (result == "JoinRequestNotFound")
-                {
-                    return NotFound(new { error = "NotFound" });
-                }
-                else if (result == "Forbidden")
-                {
-                    return Forbid("Access Denied");
-                }
-                else if (result == "MaxMembersReached")
-                {
-                    return BadRequest(new { error = "项目成员已满，无法添加新成员" });
-                }
-                else if (result == "Rejected")
-                {
-                    return BadRequest(new { error = "加入申请已被拒绝" });
-                }
-                else if (result == "MemberAlreadyExists")
-                {
-                    return BadRequest(new { error = "该成员已经是项目成员" });
-                }
-                return StatusCode(500, new { error = "审核失败，系统错误" });
+                return Ok(new { message = result });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(new { errorCode = 401, success = false, message = ex.Message });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { errorCode = 404, success = false, message = ex.Message });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { error = "服务器内部错误", details = ex.Message });
+                return StatusCode(500, new { success = false, message = ex.Message });
             }
         }
 
@@ -170,21 +164,16 @@ namespace WukongDemo.joinRequest.Controller
             try
             {
                 var result = await _joinRequestService.DeleteJoinRequestAsync(id,userId);
-
-                if (!result)
-                {
-                    return NotFound(new { success = false, message = "Join request not found." });
-                }
-
-                return Ok(new { success = true, message = "Join request deleted successfully." });
+                
+                return Ok(new { success = true, message = result });
             }
             catch (UnauthorizedAccessException ex)
             {
-                return Forbid(ex.Message);
+                return Unauthorized(new { errorCode = 401, success = false, message = ex.Message });
             }
             catch (KeyNotFoundException ex)
             {
-                return NotFound(new { success = false, message = ex.Message });
+                return NotFound(new { errorCode = 404, success = false, message = ex.Message });
             }
             catch (Exception ex)
             {

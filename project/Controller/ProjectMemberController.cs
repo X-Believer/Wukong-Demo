@@ -5,105 +5,124 @@ using WukongDemo.Util;
 
 namespace WukongDemo.project.Controller
 {
-    public class ProjectMemberController
+    [Route("projects")]
+    [ApiController]
+    public class ProjectMemberController : ControllerBase
     {
-        [Route("api/projects")]
-        [ApiController]
-        public class ProjectController : ControllerBase
+        
+        private readonly ProjectMemberService _projectMemberService;
+        private readonly ProjectService _projectService;
+
+        public ProjectMemberController(ProjectMemberService projectMemberService, ProjectService projectService)
         {
-            private readonly ProjectMemberService _projectMemberService;
-            private readonly ProjectService _projectService;
+            _projectService = projectService;
+            _projectMemberService = projectMemberService;
+        }
 
-            public ProjectController(ProjectMemberService projectMemberService, ProjectService projectService)
+        /// <summary>
+        /// 获取项目的全部成员
+        /// </summary>
+        [HttpGet("{projectId}/members")]
+        public async Task<IActionResult> GetProjectMembers(int projectId)
+        {
+            var projectMembers = await _projectMemberService.GetProjectMembersAsync(projectId);
+
+            if (projectMembers == null || !projectMembers.Any())
             {
-                _projectService = projectService;
-                _projectMemberService = projectMemberService;
+                return NotFound(new { success = false, message = "No members found for this project." });
             }
 
-            /// <summary>
-            /// 获取项目的全部成员
-            /// </summary>
-            [HttpGet("{projectId}/members")]
-            public async Task<IActionResult> GetProjectMembers(int projectId)
-            {
-                var projectMembers = await _projectMemberService.GetProjectMembersAsync(projectId);
+            // 返回项目成员信息
+            return Ok(new { success = true, data = projectMembers });
+        }
 
-                if (projectMembers == null || !projectMembers.Any())
+        /// <summary>
+        /// 添加项目成员
+        /// </summary>
+        [HttpPost("{projectId}/members")]
+        public async Task<IActionResult> AddProjectMember(int projectId, [FromHeader] string authorization, [FromBody] AddMemberRequest request)
+        {
+            var userId = AuthUtils.GetUserIdFromToken(authorization);  // 从 Token 中获取用户 ID            
+
+            // 调用 Service 层方法添加项目成员
+            try
+            {
+                var addRequest = await _projectMemberService.AddProjectMemberAsync(projectId, userId, request.NewMemberId, request.Role);
+
+                return Ok(new
                 {
-                    return NotFound(new { success = false, message = "No members found for this project." });
-                }
-
-                // 返回项目成员信息
-                return Ok(new { success = true, data = projectMembers });
+                    success = true,
+                    message = "添加成员成功",
+                    data = addRequest
+                });
             }
-
-            /// <summary>
-            /// 添加项目成员
-            /// </summary>
-            [HttpPost("{projectId}/members")]
-            public async Task<IActionResult> AddProjectMember(int projectId, [FromHeader] string authorization, [FromBody] AddMemberRequest request)
+            catch (UnauthorizedAccessException ex)
             {
-                var userId = AuthUtils.GetUserIdFromToken(authorization);  // 从 Token 中获取用户 ID
-
-                // 调用 Service 层方法添加项目成员
-                var result = await _projectMemberService.AddProjectMemberAsync(projectId, userId, request.NewMemberId, request.Role);
-
-                switch (result)
-                {                   
-                    case "Forbidden":
-                        return Forbid("Access Denied");
-                    case "AlreadyMember":
-                        return BadRequest(new { success = false, message = "User is already a member of the project." });
-                    case "MemberAdded":
-                        return Ok(new { success = true, message = "Member added successfully." });
-                    default:
-                        return StatusCode(500, new { success = false, message = "An unexpected error occurred." });
-                }
+                return Unauthorized(new { errorCode=401, success = false, message = ex.Message });
             }
-
-            /// <summary>
-            /// 变更项目成员身份
-            /// </summary>
-            [HttpPut("{projectId}/members/{userId}")]
-            public async Task<IActionResult> ChangeMemberRole([FromRoute] int projectId,[FromRoute] int updateId,[FromBody] string newRole, [FromHeader] string authorization)
+            catch (InvalidOperationException ex)
             {
-                int userId = AuthUtils.GetUserIdFromToken(authorization);
+                return BadRequest(new { errorCode=400, success = false, message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }                   
+        }
 
+        /// <summary>
+        /// 变更项目成员身份
+        /// </summary>
+        [HttpPut("{projectId}/members/{updateId}")]
+        public async Task<IActionResult> ChangeMemberRole([FromRoute] int projectId, [FromRoute] int updateId, [FromBody] string newRole, [FromHeader] string authorization)
+        {
+            int userId = AuthUtils.GetUserIdFromToken(authorization);
+
+            try
+            {
                 var result = await _projectMemberService.ChangeMemberRoleAsync(projectId, userId, newRole, updateId);
-
-                if (result == "Forbidden")
-                {
-                    return Forbid("You do not have permission to change this member's role.");
-                }
-                if (result == "NotFound")
-                {
-                    return NotFound(new { message = "Member not found in the project." });
-                }
-
-                return Ok(new { message = "Member role updated successfully." });
+                return Ok(new { message = result });
             }
-
-            /// <summary>
-            /// 删除项目成员
-            /// </summary>
-            [HttpDelete("{userId}")]
-            public async Task<IActionResult> RemoveProjectMember([FromRoute] int projectId,[FromRoute] int deleteId,[FromHeader] string authorization)  // 通过 Authorization Header 传递 Token
+            catch (UnauthorizedAccessException ex)
             {
-                int userId = AuthUtils.GetUserIdFromToken(authorization);
-
-                var result = await _projectMemberService.RemoveProjectMemberAsync(projectId, userId, deleteId);
-
-                if (result == "Forbidden")
-                {
-                    return Forbid("You do not have permission to remove this member.");
-                }
-                if (result == "NotFound")
-                {
-                    return NotFound(new { message = "Member not found in the project." });
-                }
-
-                return Ok(new { message = "Member removed successfully." });
+                return Unauthorized(new { errorCode=401, success = false, message = ex.Message });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { errorCode=404, success = false, message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
             }
         }
+
+        /// <summary>
+        /// 删除项目成员
+        /// </summary>
+        [HttpDelete("{projectId}/members/{deleteId}")]
+        public async Task<IActionResult> RemoveProjectMember([FromRoute] int projectId, [FromRoute] int deleteId, [FromHeader] string authorization)  // 通过 Authorization Header 传递 Token
+        {
+            int userId = AuthUtils.GetUserIdFromToken(authorization);
+
+            try
+            {
+                var result = await _projectMemberService.RemoveProjectMemberAsync(projectId, userId, deleteId);
+                return Ok(new { message = result });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(new { errorCode=401, success = false, message = ex.Message });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { errorCode=404, success = false, message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+        
     }
 }

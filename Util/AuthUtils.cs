@@ -14,7 +14,7 @@ namespace WukongDemo.Util
                 throw new UnauthorizedAccessException("Invalid token");
             }
 
-            var handler = new JwtSecurityTokenHandler();
+            /*var handler = new JwtSecurityTokenHandler();
             var jsonToken = handler.ReadToken(token) as JwtSecurityToken;
             var userId = jsonToken?.Claims.FirstOrDefault(c => c.Type == "userId")?.Value;
 
@@ -24,7 +24,11 @@ namespace WukongDemo.Util
             if (!int.TryParse(userId, out int userIdInt))
                 throw new UnauthorizedAccessException("Invalid userId in token");
 
-            return userIdInt;
+            return userIdInt;*/
+
+            if (!int.TryParse(token, out int res))
+                throw new UnauthorizedAccessException("Invalid userId in token");
+            return res;
         }
     }
 }

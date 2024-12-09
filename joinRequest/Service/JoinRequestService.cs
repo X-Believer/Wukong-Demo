@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authentication;
+﻿using Azure.Core;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
 using WukongDemo.Data;
 using WukongDemo.joinRequest.Models;
@@ -54,7 +55,11 @@ namespace WukongDemo.joinRequest.Service
         // 发送加入申请
         public async Task<JoinRequest> SendJoinRequestAsync(int projectId, int applicantId, string type, string reason, string selfIntroduction)
         {
-            // 创建一个新的加入申请实体
+            if (await _context.Projects.FindAsync(projectId) == null)
+            {
+                throw new KeyNotFoundException("Project not found.");
+            }
+
             var joinRequest = new JoinRequest
             {
                 ProjectId = projectId,
@@ -85,7 +90,7 @@ namespace WukongDemo.joinRequest.Service
 
             if (joinRequest.ApplicantId != userId)
             {
-                throw new UnauthorizedAccessException("Access denied");
+                throw new UnauthorizedAccessException("Access denied.");
             }
 
             joinRequest.Type = type;
@@ -105,27 +110,30 @@ namespace WukongDemo.joinRequest.Service
 
             if (joinRequest == null)
             {
-                return "JoinRequestNotFound";
+                throw new KeyNotFoundException("Join request not found.");
             }
 
             var isAuthorized = await IsUserProjectLeaderOrAdminAsync(joinRequest.ProjectId, userId);
             if (!isAuthorized)
             {
-                return "Forbidden";
+                throw new UnauthorizedAccessException("Access denied.");
             }
 
             if (isApproved)
             {
                 if (joinRequest.Project.CurrentMembers >= joinRequest.Project.MaxMembers)
                 {
-                    return "MaxMembersReached";
+                    throw new InvalidOperationException("Max member reached.");
                 }
 
-                var result = await _projectMemberService.AddProjectMemberAsync(joinRequest.ProjectId, userId, joinRequest.ApplicantId, joinRequest.Type);
-                if (result != "MemberAdded")
+                try
                 {
-                    return result;
+                    var result = await _projectMemberService.AddProjectMemberAsync(joinRequest.ProjectId, userId, joinRequest.ApplicantId, joinRequest.Type);
                 }
+                catch (Exception ex)
+                {
+                    return ex.Message;
+                }                
 
                 joinRequest.Status = "Approved";
                 joinRequest.ReviewedBy = userId;
@@ -133,7 +141,7 @@ namespace WukongDemo.joinRequest.Service
 
                 await _context.SaveChangesAsync();
 
-                return "Success";
+                return "Join request is approved.";
             }
             else
             {
@@ -143,29 +151,29 @@ namespace WukongDemo.joinRequest.Service
 
                 await _context.SaveChangesAsync();
 
-                return "Rejected";
+                return "Join request is rejected.";
             }
         }
 
         // 删除加入申请
-        public async Task<bool> DeleteJoinRequestAsync(int requestId, int userId)
+        public async Task<string> DeleteJoinRequestAsync(int requestId, int userId)
         {
             var joinRequest = await _context.JoinRequests.FindAsync(requestId);
 
             if (joinRequest == null)
             {
-                return false;
+                throw new KeyNotFoundException("Join request not found.");
             }
 
             if (joinRequest.ApplicantId != userId)
             {
-                throw new UnauthorizedAccessException("Access denied");
+                throw new UnauthorizedAccessException("Access denied.");
             }
 
             _context.JoinRequests.Remove(joinRequest);
             await _context.SaveChangesAsync();
 
-            return true;
+            return "Join request removed successfully.";
         }
 
         // 检查请求者是否是项目的负责人或管理员

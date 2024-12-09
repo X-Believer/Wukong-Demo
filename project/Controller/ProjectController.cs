@@ -4,7 +4,7 @@ using WukongDemo.project.Models;
 using WukongDemo.project.Service;
 namespace WukongDemo.project.Controller
 {
-    [Route("api/projects")]
+    [Route("projects")]
     [ApiController]
     public class ProjectController : ControllerBase
     {

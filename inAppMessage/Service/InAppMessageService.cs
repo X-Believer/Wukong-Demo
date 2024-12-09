@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using WukongDemo.Data;
 using WukongDemo.user.Models;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.CodeAnalysis;
 
 namespace WukongDemo.inAppMessage.Service
 {
@@ -18,7 +19,6 @@ namespace WukongDemo.inAppMessage.Service
         // 获取用户站内信
         public async Task<IEnumerable<InAppMessage>> GetMessagesByRecipientAsync(int userId, int pageNumber, int pageSize)
         {
-
             var query = _context.InAppMessages
                 .Where(m => m.RecipientId == userId)
                 .OrderByDescending(m => m.SentAt)
@@ -29,15 +29,29 @@ namespace WukongDemo.inAppMessage.Service
         }
 
         // 根据id查询站内信
-        public async Task<InAppMessage> GetMessageByIdAsync(int id)
+        public async Task<InAppMessage> GetMessageByIdAsync(int id, int userId)
         {
-            return await _context.InAppMessages.AsNoTracking().FirstOrDefaultAsync(m => m.InAppMessageId == id);
+            InAppMessage message = await _context.InAppMessages.FindAsync(id);
+            if (message == null)
+            {
+                throw new KeyNotFoundException("Message not found.");
+            }
+            if (message.RecipientId != userId && message.SenderId != userId)
+            {
+                throw new UnauthorizedAccessException("Access Denied");
+            }
+            await MarkMessageAsReadAsync(id);
+            return message;
         }
 
         // 发送站内信
-        public async Task<string> SendMessageAsync(int senderId, int recipientId, int type, string subject, string content, int relatedProjectId = 0)
+        public async Task<InAppMessage> SendMessageAsync(int senderId, int recipientId, int type, string subject, string content, int relatedProjectId = 0)
         {
-            // 创建新的站内信对象
+            if (await _context.Users.FindAsync(recipientId) == null)
+            {
+                throw new KeyNotFoundException("Recipient not found.");
+            }
+
             var message = new InAppMessage
             {
                 SenderId = senderId,
@@ -50,26 +64,25 @@ namespace WukongDemo.inAppMessage.Service
                 IsRead = false,
             };
 
-            // 保存站内信到数据库
             _context.InAppMessages.Add(message);
             await _context.SaveChangesAsync();
 
-            return "Message sent successfully.";
+            return message;
         }
 
         // 向项目成员发送站内信
-        public async Task<string> SendMessageToAllMembers(int projectId, int senderId, int type, string subject, string content)
+        public async Task<List<InAppMessage>> SendMessageToAllMembers(int projectId, int senderId, int type, string subject, string content)
         {
-            // 查询该项目的所有成员
             var projectMembers = await _context.ProjectMembers
                 .Where(pm => pm.ProjectId == projectId)
                 .Include(pm => pm.User)
                 .ToListAsync();
 
-            if (!projectMembers.Any())
+            if (projectMembers.Count == 0)
             {
-                return "No members found for this project.";
+                throw new KeyNotFoundException("No member found in the project");
             }
+            List<InAppMessage> messages = new();
 
             // 遍历每个成员并发送站内信
             foreach (var projectMember in projectMembers)
@@ -85,15 +98,14 @@ namespace WukongDemo.inAppMessage.Service
                     IsRead = false,
                     RelatedProjectId = projectId
                 };
+                messages.Add(message);
 
-                // 保存站内信到数据库
                 _context.InAppMessages.Add(message);
             }
 
-            // 保存所有新增的站内信
             await _context.SaveChangesAsync();
 
-            return "Messages sent successfully.";
+            return messages;
         }
 
         // 按照id删除站内信
@@ -103,19 +115,18 @@ namespace WukongDemo.inAppMessage.Service
 
             if (message == null)
             {
-                return "NotFound";
+                throw new KeyNotFoundException("Messge not found.");
             }
 
-            // 检查当前用户是否有权限删除
             if (message.RecipientId != userId)
             {
-                return "Forbidden";
+                throw new UnauthorizedAccessException("Access denied.");
             }
 
             _context.InAppMessages.Remove(message);
             await _context.SaveChangesAsync();
 
-            return "Success";
+            return "Message deleted successfully.";
         }
 
         // 标记为已读

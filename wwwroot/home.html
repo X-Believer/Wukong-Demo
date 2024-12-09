@@ -1,0 +1,214 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to Wukong Demo API</title>
+    <!-- 引入 Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-KyZXEJ3QSFJ6tF6F+QWWUw1RRxw7nHf4mS/zkDXhE3CzlgTRzHbYx2nZygJlTxjL" crossorigin="anonymous">
+    <style>
+        body {
+            background-color: #f4f6f9;
+            color: #333;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow-x: hidden;
+        }
+
+        /* 背景渐变和几何形状 */
+        .hero-section {
+            position: relative;
+            text-align: center;
+            padding: 100px 20px;
+            background-color: #007bff; /* 固定背景颜色 */
+            color: white;
+            overflow: hidden;
+            min-height: 70vh;
+            flex: 1;
+            animation: fadeInBackground 10s ease-in-out infinite alternate;
+        }
+
+        @keyframes fadeInBackground {
+            0% {
+                background-color: #007bff; /* 初始颜色 */
+            }
+
+            50% {
+                background-color: #00bcd4; /* 中间颜色 */
+            }
+
+            100% {
+                background-color: #007bff; /* 最终颜色 */
+            }
+        }
+
+        /* 圆形背景装饰 */
+        .hero-section::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 400px;
+            height: 400px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 50px rgba(0, 0, 0, 0.2);
+            z-index: 1;
+            animation: scaleCircle 3s ease-in-out infinite alternate; /* 圆形动画 */
+        }
+
+        @keyframes scaleCircle {
+            0% {
+                transform: translate(-50%, -50%) scale(1);
+            }
+
+            100% {
+                transform: translate(-50%, -50%) scale(1.2);
+            }
+        }
+
+        .hero-section h1 {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            letter-spacing: 1px;
+            opacity: 0;
+            animation: fadeIn 2s forwards; /* 标题动画 */
+        }
+
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+            }
+        }
+
+        .hero-section p {
+            font-size: 1.2rem;
+            margin-bottom: 30px;
+            opacity: 0;
+            animation: fadeInText 3s 1s forwards; /* 文本动画 */
+        }
+
+        @keyframes fadeInText {
+            to {
+                opacity: 1;
+            }
+        }
+
+        .btn-custom {
+            background-color: #28a745;
+            color: white;
+            padding: 15px 30px;
+            font-size: 1.2rem;
+            border-radius: 50px;
+            transition: background-color 0.3s ease;
+            position: relative;
+            z-index: 2;
+            opacity: 0;
+            animation: fadeInButton 4s 0s forwards; /* 按钮动画 */
+        }
+
+        @keyframes fadeInButton {
+            to {
+                opacity: 1;
+            }
+        }
+
+        .btn-custom:hover {
+            background-color: #218838;
+        }
+
+        /* 增加一些装饰形状 */
+        .decor-shape {
+            position: absolute;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.2);
+            z-index: 0;
+        }
+
+        /* 大小和位置不同的装饰形状 */
+        .decor-shape-1 {
+            width: 250px;
+            height: 250px;
+            top: 10%;
+            left: 5%;
+        }
+
+        .decor-shape-2 {
+            width: 300px;
+            height: 300px;
+            top: 40%;
+            left: 70%;
+        }
+
+        .decor-shape-3 {
+            width: 200px;
+            height: 200px;
+            top: 75%;
+            left: 20%;
+        }
+
+        /* 页脚 */
+        .footer {
+            text-align: center;
+            padding: 20px;
+            background-color: #343a40;
+            color: white;
+            position: relative;
+            bottom: 0;
+            width: 100%;
+            animation: fadeInFooter 2s ease-in-out forwards; /* 页脚动画 */
+        }
+
+        @keyframes fadeInFooter {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        .footer::before {
+            content: '';
+            position: absolute;
+            top: -50px;
+            left: -100px;
+            width: 300px;
+            height: 300px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            transform: rotate(45deg);
+        }
+
+        /* 确保网页的底部不会被覆盖 */
+        .container {
+            min-height: 40vh;
+        }
+    </style>
+</head>
+<body>
+    <!-- 欢迎区 -->
+    <section class="hero-section">
+        <div class="decor-shape decor-shape-1"></div>
+        <div class="decor-shape decor-shape-2"></div>
+        <div class="decor-shape decor-shape-3"></div>
+        <h1>Welcome to Wukong Demo API</h1>
+        <p class="lead">Explore our APIs and get started with powerful features.</p>
+        <a href="/api-docs" class="btn btn-custom btn-lg">View API Documentation</a>
+        <p class="lead">☟</p>
+        <a href="/test" class="btn btn-custom btn-lg">Test API</a> 
+    </section>
+
+    <!-- 页脚 -->
+    <footer class="footer">
+        <p>Powered by Dr.Xing Studio</p>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js" integrity="sha384-pzjw8f+ua7Kw1TIq0v8FqG2qRIQgD49V1YuQJ2TGL++0NxgPTj0qVsqOTzVQYIzl" crossorigin="anonymous"></script>
+</body>
+</html>

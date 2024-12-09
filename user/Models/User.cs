@@ -1,6 +1,7 @@
 ﻿using WukongDemo.inAppMessage.Models;
 using WukongDemo.project.Models;
 using WukongDemo.joinRequest.Models;
+using System.Text.Json.Serialization;
 
 namespace WukongDemo.user.Models
 {
@@ -15,10 +16,15 @@ namespace WukongDemo.user.Models
         public required string Role { get; set; }
 
         // 导航属性
+        [JsonIgnore]
         public ICollection<InAppMessage> SentMessages { get; set; }
+        [JsonIgnore]
         public ICollection<InAppMessage> ReceivedMessages { get; set; }
+        [JsonIgnore]
         public ICollection<ProjectMember> ProjectMembers { get; set; }
+        [JsonIgnore]
         public ICollection<JoinRequest> JoinRequestsAsApplicant {  get; set; }
+        [JsonIgnore]
         public ICollection<JoinRequest> JoinRequestsAsReviewer { get; set; }
     }
 }

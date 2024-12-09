@@ -8,9 +8,9 @@ using System.IdentityModel.Tokens.Jwt;
 using Microsoft.AspNetCore.Authorization;
 using WukongDemo.inAppMessage.Service;
 
-namespace WukongDemo.inAppMessage.Controllers
+namespace WukongDemo.inAppMessage.Controller
 {
-    [Route("api/[controller]")]
+    [Route("")]
     [ApiController]
     public class InAppMessageController : ControllerBase
     {
@@ -36,7 +36,7 @@ namespace WukongDemo.inAppMessage.Controllers
 
             if (messages == null || !messages.Any())
             {
-                return NotFound(new { errorCode = "404", message = "No messages found." });
+                return NotFound(new { errorCode = 404, success = false, message = "No message found for the user." });
             }
 
             return Ok(messages);
@@ -50,20 +50,24 @@ namespace WukongDemo.inAppMessage.Controllers
         {
             var userId = AuthUtils.GetUserIdFromToken(authorization);
 
-            // 从数据库中查询站内信
-            var message = await _inAppMessageService.GetMessageByIdAsync(id);
-            if (message == null)
+            try
             {
-                return NotFound(new { errorCode = "404", message = "Message not found." });
+                var message = await _inAppMessageService.GetMessageByIdAsync(id, userId);
+                return Ok(message);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { errorCode = 404, success = false, message = ex.Message });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(new { errorCode = 401, success = false, message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
             }
 
-            // 确保当前用户是收件人或发件人
-            if (message.RecipientId != userId && message.SenderId != userId)
-            {
-                return Forbid("Access denied.");
-            }
-
-            return Ok(message);
         }
 
         /// <summary>
@@ -74,9 +78,26 @@ namespace WukongDemo.inAppMessage.Controllers
         {
             var senderId = AuthUtils.GetUserIdFromToken(authorization);
 
-            var result = await _inAppMessageService.SendMessageAsync(senderId, request.RecipientId, request.Type, request.Subject, request.Content, request.RelatedProjectId);
+            try
+            {
+                var newMessage = await _inAppMessageService.SendMessageAsync(senderId, request.RecipientId, request.Type, request.Subject, request.Content, request.RelatedProjectId);
 
-            return Ok(new { success = true, message = result });
+                return Ok(new
+                {
+                    success = true,
+                    message = "站内信发送成功",
+                    data = newMessage
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { errorCode = 404, success = false, message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+
         }
 
         /// <summary>
@@ -87,15 +108,25 @@ namespace WukongDemo.inAppMessage.Controllers
         {
             var senderId = AuthUtils.GetUserIdFromToken(authorization);
 
-            
-            var result = await _inAppMessageService.SendMessageToAllMembers(projectId, senderId, request.Type, request.Subject, request.Content);
-
-            if (result.Contains("successfully"))
+            try
             {
-                return Ok(new { success = true, message = result });
+                var newMessages = await _inAppMessageService.SendMessageToAllMembers(projectId, senderId, request.Type, request.Subject, request.Content);
+                
+                return Ok(new
+                {
+                    success = true,
+                    message = "站内信发送成功",
+                    data = newMessages
+                });
             }
-
-            return BadRequest(new { success = false, message = result });
+            catch(KeyNotFoundException ex)
+            {
+                return NotFound(new { errorCode = 404, success = false, message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
         }
 
         /// <summary>
@@ -106,15 +137,21 @@ namespace WukongDemo.inAppMessage.Controllers
         {
             var userId = AuthUtils.GetUserIdFromToken(authorization);
 
-            var result = await _inAppMessageService.DeleteMessageAsync(id, userId);
-
-            if (result == "NotFound")
+            try
             {
-                return NotFound(new { errorCode = "404", message = "Message not found." });
+                var result = await _inAppMessageService.DeleteMessageAsync(id, userId);
             }
-            else if (result == "Forbidden")
+            catch (KeyNotFoundException ex)
             {
-                return Forbid("Access denied.");
+                return NotFound(new { errorCode = 404, success = false, message = ex.Message });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(new { errorCode = 401, success = false, message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
             }
 
             return Ok(new { success = true, message = "站内信删除成功" });
