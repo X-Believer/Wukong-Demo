@@ -7,6 +7,7 @@ using System.Linq;
 using System.IdentityModel.Tokens.Jwt;
 using Microsoft.AspNetCore.Authorization;
 using WukongDemo.inAppMessage.Service;
+using WukongDemo.Util.Responses;
 
 namespace WukongDemo.inAppMessage.Controller
 {
@@ -34,12 +35,20 @@ namespace WukongDemo.inAppMessage.Controller
             // 从 Service 层获取站内信列表
             var messages = await _inAppMessageService.GetMessagesByRecipientAsync(userId, pageNumber, pageSize);
 
-            if (messages == null || !messages.Any())
+            if (messages.Item1 == null || !messages.Item1.Any())
             {
                 return NotFound(new { errorCode = 404, success = false, message = "No message found for the user." });
             }
 
-            return Ok(messages);
+            var response = new PaginatedResponse<InAppMessage>
+            {
+                TotalCount = messages.totalCount,
+                TotalPages = messages.totalCount/pageSize,
+                CurrentPage = pageNumber,
+                Data = messages.Item1
+            };
+
+            return Ok(response);
         }
 
         /// <summary>
@@ -122,6 +131,10 @@ namespace WukongDemo.inAppMessage.Controller
             catch(KeyNotFoundException ex)
             {
                 return NotFound(new { errorCode = 404, success = false, message = ex.Message });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(new { errorCode = 401, success = false, message = ex.Message });
             }
             catch (Exception ex)
             {

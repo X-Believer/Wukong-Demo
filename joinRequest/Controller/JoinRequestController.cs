@@ -1,9 +1,11 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using System.Net;
 using WukongDemo.Data;
+using WukongDemo.inAppMessage.Models;
 using WukongDemo.joinRequest.Models;
 using WukongDemo.joinRequest.Service;
 using WukongDemo.Util;
+using WukongDemo.Util.Responses;
 
 namespace WukongDemo.joinRequest.Controller
 {
@@ -22,26 +24,25 @@ namespace WukongDemo.joinRequest.Controller
         /// 获取某一项目的全部加入申请
         /// </summary>        
         [HttpGet("projects/{projectId}/join-requests")]
-        public async Task<IActionResult> GetJoinRequestsByProjectId(int projectId, int pageNumber = 1, int pageSize = 10)
+        public async Task<IActionResult> GetJoinRequestsByProjectId([FromHeader] string authorization, [FromRoute] int projectId, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 5)
         {
-            var (joinRequests, totalCount) = await _joinRequestService.GetJoinRequestsByProjectIdAsync(projectId, pageNumber, pageSize);
+            var joinRequests = await _joinRequestService.GetJoinRequestsByProjectIdAsync(projectId, pageNumber, pageSize);
 
-            if (joinRequests == null || !joinRequests.Any())
+            if (joinRequests.Item1 == null || !joinRequests.Item1.Any())
             {
                 return NotFound(new { errorCode = 404, success = false, message = "Join request not found in the project." });
             }
 
             // 计算总页数
-            var totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
+            var totalPages = (int)Math.Ceiling((double)joinRequests.TotalCount / pageSize);
 
-            var response = new
+            var response = new PaginatedResponse<JoinRequest>
             {
-                TotalCount = totalCount,
-                TotalPages = totalPages,
-                PageNumber = pageNumber,
-                PageSize = pageSize,
-                JoinRequests = joinRequests
-            };
+                TotalCount = joinRequests.TotalCount,
+                TotalPages = joinRequests.TotalCount / pageSize,
+                CurrentPage = pageNumber,
+                Data = joinRequests.Item1
+            };            
 
             return Ok(response);
         }
@@ -49,17 +50,22 @@ namespace WukongDemo.joinRequest.Controller
         /// <summary>
         /// 获取项目的某一加入申请
         /// </summary>        
-        [HttpGet("join-requests/{id}")]
-        public async Task<IActionResult> GetJoinRequestById([FromRoute] int id)
+        [HttpGet("projects/{projectId}/join-requests/{id}")]
+        public async Task<IActionResult> GetJoinRequestById([FromRoute] int id, [FromRoute] int projectId)
         {
-            var joinRequest = await _joinRequestService.GetJoinRequestByIdAsync(id);
-
-            if (joinRequest == null)
+            try
             {
-                return NotFound(new { errorCode = 404, success = false, message = "Join request not found." });
+                var joinRequest = await _joinRequestService.GetJoinRequestByIdAsync(id, projectId);
+                return Ok(joinRequest);
             }
-
-            return Ok(joinRequest);
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { errorCode = 404, success = false, message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }            
         }
 
         /// <summary>
@@ -80,7 +86,7 @@ namespace WukongDemo.joinRequest.Controller
                 return Ok(new
                 {
                     success = true,
-                    message = "添加成员成功",
+                    message = "申请发送成功",
                     data = joinRequest
                 });
             }
@@ -97,7 +103,7 @@ namespace WukongDemo.joinRequest.Controller
         /// <summary>
         /// 修改加入申请
         /// </summary>
-        [HttpPost("join-requests/{id}")]
+        [HttpPut("join-requests/{id}")]
         public async Task<IActionResult> UpdateJoinRequest([FromHeader] string authorization, [FromRoute] int id, [FromBody] JoinRequestDto updateDto)
         {
             var userId = AuthUtils.GetUserIdFromToken(authorization);
@@ -129,14 +135,14 @@ namespace WukongDemo.joinRequest.Controller
         /// <summary>
         /// 审核加入申请
         /// </summary>
-        [HttpPut("review-join-requests/{requestId}")]
-        public async Task<IActionResult> ApproveJoinRequestAsync([FromRoute] int requestId, [FromHeader] string authorization, [FromQuery] bool isApproved)
+        [HttpPut("projects/{projectId}/review-requests/{requestId}")]
+        public async Task<IActionResult> ApproveJoinRequestAsync([FromRoute] int requestId, [FromRoute] int projectId, [FromHeader] string authorization, [FromQuery] bool isApproved)
         {
             var userId = AuthUtils.GetUserIdFromToken(authorization);
 
             try
             {
-                var result = await _joinRequestService.ApproveJoinRequestAsync(requestId, userId, isApproved);
+                var result = await _joinRequestService.ApproveJoinRequestAsync(projectId, requestId, userId, isApproved);
                 return Ok(new { message = result });
             }
             catch (UnauthorizedAccessException ex)
@@ -146,6 +152,10 @@ namespace WukongDemo.joinRequest.Controller
             catch (KeyNotFoundException ex)
             {
                 return NotFound(new { errorCode = 404, success = false, message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { errorCode = 400, success = false, message = ex.Message });
             }
             catch (Exception ex)
             {

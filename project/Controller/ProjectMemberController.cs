@@ -29,7 +29,7 @@ namespace WukongDemo.project.Controller
 
             if (projectMembers == null || !projectMembers.Any())
             {
-                return NotFound(new { success = false, message = "No members found for this project." });
+                return NotFound(new { errorCode = 404, success = false, message = "No members found for this project." });
             }
 
             // 返回项目成员信息
@@ -60,6 +60,10 @@ namespace WukongDemo.project.Controller
             {
                 return Unauthorized(new { errorCode=401, success = false, message = ex.Message });
             }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { errorCode = 404, success = false, message = ex.Message });
+            }
             catch (InvalidOperationException ex)
             {
                 return BadRequest(new { errorCode=400, success = false, message = ex.Message });
@@ -74,7 +78,7 @@ namespace WukongDemo.project.Controller
         /// 变更项目成员身份
         /// </summary>
         [HttpPut("{projectId}/members/{updateId}")]
-        public async Task<IActionResult> ChangeMemberRole([FromRoute] int projectId, [FromRoute] int updateId, [FromBody] string newRole, [FromHeader] string authorization)
+        public async Task<IActionResult> ChangeMemberRole([FromRoute] int projectId, [FromRoute] int updateId, [FromQuery] string newRole, [FromHeader] string authorization)
         {
             int userId = AuthUtils.GetUserIdFromToken(authorization);
 

@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 using WukongDemo.user.Models;
 
 namespace WukongDemo.project.Models
@@ -13,9 +14,11 @@ namespace WukongDemo.project.Models
         public required string Status { get; set; }      // 状态（如：在职、已退出）
 
         // 导航属性
+        [JsonIgnore]
         [ForeignKey("ProjectId")]
         public Project Project { get; set; }
 
+        [JsonIgnore]
         [ForeignKey("UserId")]
         public User User { get; set; }
     }

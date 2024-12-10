@@ -4,6 +4,7 @@ using WukongDemo.Data;
 using WukongDemo.user.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.CodeAnalysis;
+using WukongDemo.Util.Responses;
 
 namespace WukongDemo.inAppMessage.Service
 {
@@ -17,15 +18,19 @@ namespace WukongDemo.inAppMessage.Service
         }
         
         // 获取用户站内信
-        public async Task<IEnumerable<InAppMessage>> GetMessagesByRecipientAsync(int userId, int pageNumber, int pageSize)
+        public async Task<(IEnumerable<InAppMessage>, int totalCount)> GetMessagesByRecipientAsync(int userId, int pageNumber, int pageSize)
         {
+            var totalCount = await _context.InAppMessages
+                .Where(ms => ms.RecipientId == userId)
+                .CountAsync();
+
             var query = _context.InAppMessages
                 .Where(m => m.RecipientId == userId)
                 .OrderByDescending(m => m.SentAt)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize);
 
-            return await query.ToListAsync();
+            return (await query.ToListAsync(), totalCount);
         }
 
         // 根据id查询站内信
@@ -73,6 +78,14 @@ namespace WukongDemo.inAppMessage.Service
         // 向项目成员发送站内信
         public async Task<List<InAppMessage>> SendMessageToAllMembers(int projectId, int senderId, int type, string subject, string content)
         {
+            var senderRecords = await _context.ProjectMembers
+                .Where(pm => pm.UserId == senderId&& pm.ProjectId == projectId)
+                .ToListAsync();
+            if (senderRecords==null)
+            {
+                throw new KeyNotFoundException("Sender is not a member in any project.");
+            }
+            
             var projectMembers = await _context.ProjectMembers
                 .Where(pm => pm.ProjectId == projectId)
                 .Include(pm => pm.User)

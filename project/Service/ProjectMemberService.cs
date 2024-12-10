@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using WukongDemo.Data;
+using WukongDemo.inAppMessage.Models;
 using WukongDemo.project.Models;
 using WukongDemo.Util;
 
@@ -36,7 +37,19 @@ namespace WukongDemo.project.Service
             {
                 throw new UnauthorizedAccessException("Access denied.");
             }
-
+            if (await _context.Users.FindAsync(newMemberId) == null)
+            {
+                throw new KeyNotFoundException("User not found.");
+            }
+            Project project = await _context.Projects.FindAsync(projectId);
+            if (project == null)
+            {
+                throw new KeyNotFoundException("Project not found.");
+            }
+            if (project.CurrentMembers >= project.MaxMembers)
+            {
+                throw new InvalidOperationException("Reached max member.");
+            }
             if (await IsUserInProjectAsync(projectId, newMemberId))
             {
                 throw new InvalidOperationException("Already a Member.");

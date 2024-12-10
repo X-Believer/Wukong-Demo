@@ -19,19 +19,16 @@ namespace WukongDemo.joinRequest.Service
         }
 
         // 获取某一项目的全部加入申请
-        public async Task<(List<JoinRequest> JoinRequests, int TotalCount)> GetJoinRequestsByProjectIdAsync(int projectId, int pageNumber, int pageSize)
+        public async Task<(IEnumerable<JoinRequest>, int TotalCount)> GetJoinRequestsByProjectIdAsync(int projectId, int pageNumber, int pageSize)
         {
-            // 获取该项目的所有加入申请总数
             var totalCount = await _context.JoinRequests
                 .Where(jr => jr.ProjectId == projectId)
                 .CountAsync();
 
-            // 获取分页后的加入申请数据
             var joinRequests = await _context.JoinRequests
                 .Where(jr => jr.ProjectId == projectId)
                 .Include(jr => jr.Applicant)
-                .Include(jr => jr.Project)
-                .Include(jr => jr.Reviewer)
+                //.Include(jr => jr.Reviewer)
                 .OrderBy(jr => jr.SubmittedAt)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
@@ -41,15 +38,19 @@ namespace WukongDemo.joinRequest.Service
         }
 
         // 根据项目申请ID查找项目申请
-        public async Task<JoinRequest> GetJoinRequestByIdAsync(int id)
+        public async Task<JoinRequest> GetJoinRequestByIdAsync(int id, int projectId)
         {
 #pragma warning disable CS8603
-            return await _context.JoinRequests
+            var request = await _context.JoinRequests
                 .Include(jr => jr.Applicant)
-                .Include(jr => jr.Project)
                 .Include(jr => jr.Reviewer)
                 .FirstOrDefaultAsync(jr => jr.JoinRequestId == id);
 #pragma warning restore CS8603
+            if(request==null||request.ProjectId!=projectId)
+            {
+                throw new KeyNotFoundException("Join request not found.");
+            }
+            return request;
         }
 
         // 发送加入申请
@@ -104,55 +105,56 @@ namespace WukongDemo.joinRequest.Service
         }
 
         // 审核加入申请
-        public async Task<string> ApproveJoinRequestAsync(int requestId, int userId, bool isApproved)
+        public async Task<string> ApproveJoinRequestAsync(int projectId, int requestId, int userId, bool isApproved)
         {
-            JoinRequest joinRequest = await GetJoinRequestByIdAsync(requestId);              
-
-            if (joinRequest == null)
+            try
             {
-                throw new KeyNotFoundException("Join request not found.");
-            }
-
-            var isAuthorized = await IsUserProjectLeaderOrAdminAsync(joinRequest.ProjectId, userId);
-            if (!isAuthorized)
-            {
-                throw new UnauthorizedAccessException("Access denied.");
-            }
-
-            if (isApproved)
-            {
-                if (joinRequest.Project.CurrentMembers >= joinRequest.Project.MaxMembers)
+                JoinRequest joinRequest = await GetJoinRequestByIdAsync(requestId, projectId);
+                var isAuthorized = await IsUserProjectLeaderOrAdminAsync(joinRequest.ProjectId, userId);
+                if (!isAuthorized)
                 {
-                    throw new InvalidOperationException("Max member reached.");
+                    throw new UnauthorizedAccessException("Access denied.");
                 }
 
-                try
+                if (isApproved)
                 {
-                    var result = await _projectMemberService.AddProjectMemberAsync(joinRequest.ProjectId, userId, joinRequest.ApplicantId, joinRequest.Type);
+                    if (joinRequest.Project.CurrentMembers >= joinRequest.Project.MaxMembers)
+                    {
+                        throw new InvalidOperationException("Max member reached.");
+                    }
+
+                    try
+                    {
+                        var result = await _projectMemberService.AddProjectMemberAsync(joinRequest.ProjectId, userId, joinRequest.ApplicantId, joinRequest.Type);
+                    }
+                    catch (Exception ex)
+                    {
+                        throw new InvalidOperationException(ex.Message);
+                    }
+
+                    joinRequest.Status = "Approved";
+                    joinRequest.ReviewedBy = userId;
+                    joinRequest.ReviewedAt = DateTime.Now;
+
+                    await _context.SaveChangesAsync();
+
+                    return "Join request is approved.";
                 }
-                catch (Exception ex)
+                else
                 {
-                    return ex.Message;
-                }                
+                    joinRequest.Status = "Rejected";
+                    joinRequest.ReviewedBy = userId;
+                    joinRequest.ReviewedAt = DateTime.Now;
 
-                joinRequest.Status = "Approved";
-                joinRequest.ReviewedBy = userId;
-                joinRequest.ReviewedAt = DateTime.Now;
+                    await _context.SaveChangesAsync();
 
-                await _context.SaveChangesAsync();
-
-                return "Join request is approved.";
+                    return "Join request is rejected.";
+                }
             }
-            else
+            catch (KeyNotFoundException ex)
             {
-                joinRequest.Status = "Rejected";
-                joinRequest.ReviewedBy = userId;
-                joinRequest.ReviewedAt = DateTime.Now;
-
-                await _context.SaveChangesAsync();
-
-                return "Join request is rejected.";
-            }
+                throw new KeyNotFoundException(ex.Message);
+            }    
         }
 
         // 删除加入申请

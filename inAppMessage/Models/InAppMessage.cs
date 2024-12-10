@@ -1,6 +1,7 @@
 ﻿using WukongDemo.user.Models;
 using WukongDemo.project.Models;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace WukongDemo.inAppMessage.Models
 {
@@ -19,18 +20,17 @@ namespace WukongDemo.inAppMessage.Models
         public required bool IsRead { get; set; }
         public int? RelatedProjectId { get; set; }
 
-        public InAppMessage()
-        {
-            
-        }
 
         // 导航属性
+        [JsonIgnore]
         [ForeignKey("SenderId")]
         public User Sender { get; set; }
 
+        [JsonIgnore]
         [ForeignKey("RecipientId")]
         public User Recipient { get; set; }
 
+        [JsonIgnore]
         [ForeignKey("RelatedProjectId")]
         public Project RelatedProject { get; set; }
     }

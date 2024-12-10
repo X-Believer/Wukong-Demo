@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 using WukongDemo.project.Models;
 using WukongDemo.user.Models;
 
@@ -27,6 +28,7 @@ namespace WukongDemo.joinRequest.Models
         public DateTime? ReviewedAt { get; set; }
 
         // 导航属性
+        [JsonIgnore]
         [ForeignKey("ProjectId")]
         public Project Project { get; set; }
 

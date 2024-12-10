@@ -25,7 +25,7 @@ namespace WukongDemo.project.Controller
 
             if (leader == null)
             {
-                return NotFound(new { success = false, message = "Project leader not found." });
+                return NotFound(new { errorCode = 404, success = false, message = "Project leader not found." });
             }
 
             return Ok(new { success = true, data = leader });
