@@ -11,8 +11,8 @@ using WukongDemo.Data;
 namespace WukongDemo.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20241206124030_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20241211150434_InitialMigration")]
+    partial class InitialMigration
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

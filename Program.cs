@@ -7,6 +7,10 @@ using Microsoft.OpenApi.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+// using Microsoft.AspNet.SignalR.WebSockets;
+using WukongDemo.Util;
+using System.Net;
+using System.Diagnostics;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,6 +24,7 @@ builder.Services.AddScoped<InAppMessageService>();
 builder.Services.AddScoped<JoinRequestService>();
 builder.Services.AddScoped<ProjectService>();
 builder.Services.AddScoped<ProjectMemberService>();
+builder.Services.AddSingleton<WebSocketHandler>();
 
 // Add Controllers
 builder.Services.AddControllers();
@@ -76,14 +81,30 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.Listen(IPAddress.Loopback, 5065);
+    options.Listen(IPAddress.Loopback, 7124, listenOptions =>
+    {
+        listenOptions.UseHttps();
+    });
+});
+
 var app = builder.Build();
 
 // Enable Authentication and Authorization
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseWebSockets();
 
 app.UseRouting();
 app.MapControllers();
+
+/*using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    dbContext.Database.Migrate();
+}*/
 
 // Enable Swagger
 app.UseSwagger();
@@ -95,7 +116,37 @@ app.UseSwaggerUI(options =>
 
 // Enable Static Files
 app.UseStaticFiles();
-app.MapGet("/home", () => Results.Redirect("/home.html"));
-app.MapGet("/test", () => Results.Redirect("/testApi.html"));
+app.MapGet("/home", () => Results.Redirect("/homePage.html"));
+app.MapGet("/realTimeMessage", () => Results.Redirect("realTimeMessage.html"));
+
+app.Map("/wss", async context =>
+{
+    if (context.WebSockets.IsWebSocketRequest)
+    {
+        var userId = context.Request.Query["userId"];
+        if (string.IsNullOrEmpty(userId))
+        {
+            context.Response.StatusCode = 400;
+            return;
+        }
+
+        var handler = app.Services.GetRequiredService<WebSocketHandler>();
+        using var webSocket = await context.WebSockets.AcceptWebSocketAsync();
+        await handler.HandleAsync(webSocket, int.Parse(userId));
+        await Task.Delay(100);
+    }
+    else
+    {
+        context.Response.StatusCode = 400;
+    }
+});
+
+app.Lifetime.ApplicationStarted.Register(() =>
+{
+    Process.Start(new ProcessStartInfo("cmd", $"/c start https://localhost:7124/homePage.html")
+    {
+        CreateNoWindow = true
+    });
+});
 
 app.Run();

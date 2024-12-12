@@ -4,16 +4,19 @@ using WukongDemo.Data;
 using WukongDemo.user.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.CodeAnalysis;
-using WukongDemo.Util.Responses;
+using WukongDemo.Util;
+using System.Text.Json;
 
 namespace WukongDemo.inAppMessage.Service
 {
     public class InAppMessageService
     {
         private readonly AppDbContext _context;
+        private readonly WebSocketHandler _webSocketHandler;
 
-        public InAppMessageService(AppDbContext context)
+        public InAppMessageService(AppDbContext context, WebSocketHandler webSocketHandler)
         {
+            _webSocketHandler = webSocketHandler;
             _context = context;
         }
         
@@ -71,6 +74,16 @@ namespace WukongDemo.inAppMessage.Service
 
             _context.InAppMessages.Add(message);
             await _context.SaveChangesAsync();
+
+            var notification = new
+            {
+                type = "new_message",
+                recipientId,
+                content
+            };
+
+            var realTimeMessage = JsonSerializer.Serialize(notification);
+            await _webSocketHandler.BroadcastMessageAsync(realTimeMessage, senderId);
 
             return message;
         }

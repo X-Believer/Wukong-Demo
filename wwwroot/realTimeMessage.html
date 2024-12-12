@@ -1,0 +1,49 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real Time Message</title>
+    <link rel="stylesheet" href="message_style.css">
+</head>
+<body>
+    <div class="title-container">
+        <h1 class="title"></h1>
+    </div>
+
+    <div class="background">
+        <div class="circle"></div>
+        <div class="circle"></div>
+        <div class="circle"></div>
+        <div class="circle"></div>
+        <div class="circle"></div>
+        <div class="circle"></div>
+    </div>
+    <div class="chat-container">
+        <!-- 用户1窗口 -->
+        <div class="chat-window user1">
+            <div class="header">
+                张哥之足球梦想 <span class="status">●</span>
+            </div>
+            <div class="messages" id="user1-messages"></div>
+            <div class="message-input">
+                <input type="text" id="user1-message" placeholder="输入消息...">
+                <button id="user1-send">发送</button>
+            </div>
+        </div>
+
+        <!-- 用户2窗口 -->
+        <div class="chat-window user2">
+            <div class="header">
+                世界霸主凯哥 <span class="status">●</span>
+            </div>
+            <div class="messages" id="user2-messages"></div>
+            <div class="message-input">
+                <input type="text" id="user2-message" placeholder="输入消息...">
+                <button id="user2-send">发送</button>
+            </div>
+        </div>
+    </div>
+    <script src="message_scripts.js"></script>
+</body>
+</html>
