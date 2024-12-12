@@ -133,7 +133,6 @@ app.Map("/wss", async context =>
         var handler = app.Services.GetRequiredService<WebSocketHandler>();
         using var webSocket = await context.WebSockets.AcceptWebSocketAsync();
         await handler.HandleAsync(webSocket, int.Parse(userId));
-        await Task.Delay(100);
     }
     else
     {

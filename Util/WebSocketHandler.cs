@@ -24,11 +24,7 @@ namespace WukongDemo.Util
 
                     if (result.MessageType == WebSocketMessageType.Text)
                     {
-                        var message = Encoding.UTF8.GetString(buffer, 0, result.Count);
-                        Console.WriteLine("Received message: " + message);
-
-                        // 广播消息给所有连接的 WebSocket
-                        await BroadcastMessageAsync(message, userId);  // 不发送给发送消息的用户
+                        var message = Encoding.UTF8.GetString(buffer, 0, result.Count);                       
                     }
                     else if (result.MessageType == WebSocketMessageType.Close)
                     {

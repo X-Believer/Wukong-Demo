@@ -20,9 +20,8 @@ function handleWebSocketMessage(event, user) {
     if (!data.content) return;
     const messageElement = document.createElement('div');
     messageElement.classList.add('message', 'user1');
-    messageElement.textContent = data.message;
-
-    if (messageElement.textContent!=" "&&user === 'user1') {
+    messageElement.textContent = data.content;
+    if (user === 'user1') {
         user1Messages.appendChild(messageElement);
     } else {
         user2Messages.appendChild(messageElement);
